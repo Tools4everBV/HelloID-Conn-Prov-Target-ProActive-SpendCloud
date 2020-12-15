@@ -1,0 +1,22 @@
+[
+    {
+      "key": "database",
+      "type": "input",
+      "defaultValue": "",
+      "templateOptions": {
+        "label": "SQLite Database file",
+        "placeholder": "",
+        "description": "",
+        "required": true
+      }
+    },
+    {
+      "key": "verbose",
+      "type": "checkbox",
+      "defaultValue": false,
+      "templateOptions": {
+        "label": "Verbose logging",
+        "required": false
+      }
+    }
+  ]
