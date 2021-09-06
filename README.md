@@ -16,7 +16,7 @@
 
 ## Introduction
 
-HelloID target connector for ProActive. This target connector uses a SQLLITE database as the intermediate step for the actual export to CSV. The new persons are placed in this database and possibly updated if required. When a person no longer gets access to ProActive, the persons are also deleted from this database.
+HelloID target connector for ProActive. This target connector uses a SQLite database as the intermediate step for the actual export to CSV. The new persons are placed in this database and possibly updated if required. When a person no longer gets access to ProActive, the persons are also deleted from this database.
 
 To finally send the perons to ProActive, a Service Automation task is running from a schedule and creates an export in CSV with the required data to create, manage or delete the accounts in ProActive.
 
@@ -28,15 +28,15 @@ The following custom connector settings are available and required:
 
 | Setting     | Description |
 | ------------ | ----------- |
-| SQLITE DATABASE FILE | The SQLLite database file on the On-Premise server. Please fill the complete path (e.g. "D:\HelloID\SQLLite\Database\ProActive.db") |
+| SQLITE DATABASE FILE | The SQLite database file on the On-Premise server. Please fill the complete path (e.g. "D:\HelloID\SQLite\Database\ProActive.db") |
 | VERBOSE LOGGING | Enable or Disable the Verbose logging of the script |
 
 ### Prerequisites
 
 - This connector requires an On-Premise HelloID Agent
 - Using the HelloID On-Premises agent, Windows PowerShell 5.1 must be installed.
-- Installation of SQLLite must be done on the On-Premise server which runnes the HellloID Agent
-- Installation of SQLLite can be done by running the install.ps1 script.
+- Installation of SQLite must be done on the On-Premise server which runnes the HellloID Agent
+- Installation of SQLite can be done by running the install.ps1 script.
 
 ### Supported PowerShell versions
 
