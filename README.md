@@ -20,7 +20,8 @@ HelloID target connector for ProActive. This target connector uses a SQLite data
 
 To finally send the persons to ProActive, a Service Automation task is running from a schedule and creates an export in CSV with the required data to create, manage or delete the accounts in ProActive.
 
-The fields that are exported are "email, voornamen, achternaam, adfs_login". A CSV import job has to be created in ProActive for this connector to work.
+The fields that are exported are "email, voornamen, achternaam, adfs_login". 
+> A CSV import job has to be created in ProActive for this connector to work.
  
 ## Getting started
 
