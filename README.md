@@ -18,8 +18,10 @@
 
 HelloID target connector for ProActive. This target connector uses a SQLite database as the intermediate step for the actual export to CSV. The new persons are placed in this database and possibly updated if required. When a person no longer gets access to ProActive, the persons are also deleted from this database.
 
-To finally send the perons to ProActive, a Service Automation task is running from a schedule and creates an export in CSV with the required data to create, manage or delete the accounts in ProActive.
+To finally send the persons to ProActive, a Service Automation task is running from a schedule and creates an export in CSV with the required data to create, manage or delete the accounts in ProActive.
 
+The fields that are exported are "email, voornamen, achternaam, adfs_login". A CSV import job has to be created in ProActive for this connector to work.
+ 
 ## Getting started
 
 ### Connector settings
@@ -35,12 +37,12 @@ The following custom connector settings are available and required:
 
 - This connector requires an On-Premise HelloID Agent
 - Using the HelloID On-Premises agent, Windows PowerShell 5.1 must be installed.
-- Installation of SQLite must be done on the On-Premise server which runnes the HellloID Agent
+- Installation of SQLite must be done on the On-Premise server which runs the HellloID Agent
 - Installation of SQLite can be done by running the install.ps1 script.
 
 ### Supported PowerShell versions
 
-The connector is created for Windows PowerShell 5.1 and higher. This means that the connector can not be executed in the cloud and requires an On-Premises installation of the HelloID Agent.
+The connector is created for Windows PowerShell 5.1. This means that the connector can not be executed in the cloud and requires an On-Premises installation of the HelloID Agent.
 
 > Older versions of Windows PowerShell are not supported.
 
