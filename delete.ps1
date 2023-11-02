@@ -1,38 +1,47 @@
+#####################################################
+# HelloID-Conn-Prov-Target-ProActive-SpendCloud-delete
+#
+# Version: 1.1.0
+#####################################################
+
 #Initialize default properties
 $aRef = $accountReference | ConvertFrom-Json;
 $config = $configuration | ConvertFrom-Json;
 
 $database = $config.database
 $verbose = $config.verbose
-
-
-#write-verbose -verbose $($accountReference.Identification)
-$auditMessage = " not removed succesfully";
-
-#Change mapping here
-$account = [PSCustomObject]@{}
+$auditLogs = [Collections.Generic.List[PSCustomObject]]::new()
 
 Try {
     If (Test-Path $database) {
-		if(-Not($dryRun -eq $True)){  
-			$query = "DELETE FROM persons WHERE externalId = '$aRef'"
-            Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose
-            $success = $True;
-            $auditMessage = " succesfully";
-		}
+        Import-Module PSSQLite     
+        $query = "DELETE FROM persons WHERE externalId = '$aRef'"
+        if (-Not($dryRun -eq $True)) {
+            $null = Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose  
+        }
+        $success = $true
+        $auditLogs.Add([PSCustomObject]@{
+                Action  = "DeleteAccount"
+                Message = "Account deleted for $($account.email) ($($aref))"
+                IsError = $false
+            }) 
     }
-} catch{
-	$auditMessage = " not removed succesfully: General error";
+}
+catch {
+    $success = $false
+    $auditLogs.Add([PSCustomObject]@{
+            Action  = "DeleteAccount"
+            Message = "Failed to delete account - $($_)"
+            IsError = $true
+        })
 }
 
 #build up result
 $result = [PSCustomObject]@{ 
-	Success= $success;
-	AccountReference= $accountReference;
-	AuditDetails=$auditMessage;
-	Account = $account;
-	
-	# Optionally return data for use in other systems
-    ExportData = [PSCustomObject]@{};
+    Success          = $success;
+    AccountReference = $aRef;
+    auditLogs        = $auditLogs;
+    Account          = $account;
+    
 };
 Write-Output $result | ConvertTo-Json -Depth 10;
