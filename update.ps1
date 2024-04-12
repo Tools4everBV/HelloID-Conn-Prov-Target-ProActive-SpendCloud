@@ -24,11 +24,30 @@ switch ($verbose) {
 try {
     # Create account object from mapped data and set the correct account reference
     $account = $actionContext.Data;
-    $person = $personContext.Person;
+    #$person = $personContext.Person;
+
+    # Make sure module is imported
+    $moduleName = "PSSQLite"
+
+    # If module is imported say that and do nothing
+    if (Get-Module -Verbose:$false | Where-Object { $_.Name -eq $ModuleName }) {
+        Write-Verbose "Module [$ModuleName] is already imported."
+    }
+    else {
+        # If module is not imported, but available on disk then import
+        if (Get-Module -ListAvailable -Verbose:$false | Where-Object { $_.Name -eq $ModuleName }) {
+            $module = Import-Module $ModuleName -Verbose:$false
+            Write-Verbose "Imported module [$ModuleName]"
+        }
+        else {
+            # If the module is not imported, not available and not in the online gallery then abort
+            throw "Module [$ModuleName] is not available. Please install the module using: Install-Module -Name [$ModuleName] -Force"
+        }
+    }
 
     Write-Verbose "Verifying if DB row exists"
     try {
-        ## Mooier zou zijn met aRef? 
+        ## Mooier zou zijn met aRef? Maar dan zou dit script verschillen met die in het create script
         $correlationField = $actionContext.CorrelationConfiguration.accountField
         $correlationValue = $actionContext.CorrelationConfiguration.accountFieldValue
 
@@ -60,7 +79,7 @@ try {
         tussenvoegsel  = $currentAccount.tussenvoegsel
         voornaam       = $currentAccount.voornaam
         gebruikersnaam = $currentAccount.gebruikersnaam
-        gender         = $currentAccount.gender
+        geslacht       = $currentAccount.gender
         externalId     = $currentAccount.externalId
         email          = $currentAccount.email
     }
@@ -81,28 +100,64 @@ try {
         If (Test-Path $database) {
             Import-Module PSSQLite     
             $query = "UPDATE persons 
-                        SET email = @email
-                        ,achternaam = @achternaam
-                        ,voornaam = @voornaam
-                        ,tussenvoegsel = @tussenvoegsel
-                        ,gebruikersnaam = @gebruikersnaam
-                        ,geslacht = @geslacht
+                        SET email = '$($account.email)'
+                        ,achternaam = '$($account.achternaam)'
+                        ,voornaam = '$($account.voornaam)'
+                        ,tussenvoegsel = '$($account.tussenvoegesel)'
+                        ,gebruikersnaam = '$($account.gebruikersnaam)'
+                        ,geslacht = '$($account.gender)'
                         ,createtime = datetime()
-                        WHERE externalId = @externalId"
+                        WHERE externalId = '$($account.externalid)'"
     
-            $sqlParameters = $account.psobject.properties | ForEach-Object -begin { $h = @{} } -process { $h."$($_.Name)" = $_.Value } -end { $h }
+            #$sqlParameters = $account.psobject.properties | ForEach-Object -begin { $h = @{} } -process { $h."$($_.Name)" = $_.Value } -end { $h }
     
             if (-Not($actionContext.DryRun -eq $true)) { 
-                $null = Invoke-SqliteQuery -Query $query -DataSource $database -SqlParameters $sqlParameters -Verbose:$verbose
+                $null = Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose
             }
             else {
                 Write-warning "Would send: $query" 
             }
               
-            
+            ## Also fill roles table for each contract incondition
+
+            ## Make sure old rows are deleted first, this could be nicer if we calculate differences in contracts but this works
+            ## This should be done on aRef
+
+            $query = "DELETE FROM roles WHERE gebruikersnaam = '$($account.gebruikersnaam)'"
+            if (-Not($actionContext.DryRun -eq $true)) {          
+                $null = Invoke-SqliteQuery -DataSource $database -Query $query -Verbose:$verbose
+            } else {
+                        Write-verbose -verbose "Would execute: $query"
+            }
+
+            # Now calculate and set roles for contracts incondition
+            $contracts = $personContext.Person.Contracts
+
+            [array]$desiredContracts = $contracts | Where-Object { $_.Context.InConditions -eq $true -or $actionContext.DryRun -eq $true }
+
+            if ($desiredContracts.length -lt 1) {
+                # no contracts in scope found
+                throw 'No Contracts in scope [InConditions] found!'
+            }
+            elseif ($desiredContracts.length -ge 1) {
+                # one or more contracts found
+                foreach ($contract in $desiredContracts) {
+                    
+                    # Must be aref thats added
+                    $query = "INSERT OR REPLACE INTO Roles ('Organisatorische eenheid', 'Gebruikersnaam', 'Functieprofiel Code','datetime') VALUES ('$($contract.department.displayname)','$($account.gebruikersnaam)','$($contract.title.name)',datetime());"
+                    if (-Not($actionContext.DryRun -eq $true)) {          
+                        $null = Invoke-SqliteQuery -DataSource $database -Query $query -Verbose:$verbose
+                    }
+                    else {
+                        Write-verbose -verbose "Would execute: $query"
+                    }
+                }
+            }                    
+
+
             $outputContext.AuditLogs.Add([PSCustomObject]@{
                     Action  = "UpdateAccount" # Optionally specify a different action for this audit log
-                    Message = "Account with username $($account.userName) updated"
+                    Message = "Account with username $($account.gebruikersnaam) updated"
                     IsError = $false
                 })
         }
@@ -112,7 +167,7 @@ try {
         Write-Verbose "No Updates for SQLLite row with accountReference: [$($actionContext.References.Account)]"
         $outputContext.AuditLogs.Add([PSCustomObject]@{
                 Action  = "UpdateAccount" # Optionally specify a different action for this audit log
-                Message = "Account with username $($account.userName) has no updates"
+                Message = "Account with username $($account.gebruikersnaam) has no updates"
                 IsError = $false
             })
     }  

@@ -12,8 +12,13 @@ $outputContext.AccountReference = "DRYRUN"
 $database = $config.database
 $verbose = $config.verbose
 
+#$actionContext.DryRun = $false
+
+# Enable TLS1.2
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
+
 # Set debug logging
-switch ($verbose) {
+switch ($($actionContext.Configuration.isDebug)) {
     $true { $VerbosePreference = 'Continue' }
     $false { $VerbosePreference = 'SilentlyContinue' }
 }
@@ -26,6 +31,26 @@ try {
     # Create account object from mapped data and set the correct account reference
     $account = $actionContext.Data;
     $person = $personContext.Person;
+
+    # Make sure module is imported
+    $moduleName = "PSSQLite"
+
+    # If module is imported say that and do nothing
+    if (Get-Module -Verbose:$false | Where-Object { $_.Name -eq $ModuleName }) {
+        Write-Verbose "Module [$ModuleName] is already imported."
+    }
+    else {
+        # If module is not imported, but available on disk then import
+        if (Get-Module -ListAvailable -Verbose:$false | Where-Object { $_.Name -eq $ModuleName }) {
+            $module = Import-Module $ModuleName -Verbose:$false
+            Write-Verbose "Imported module [$ModuleName]"
+        }
+        else {
+            # If the module is not imported, not available and not in the online gallery then abort
+            throw "Module [$ModuleName] is not available. Please install the module using: Install-Module -Name [$ModuleName] -Force"
+        }
+    }
+
 
     # Check if we should try to correlate the account
     if ($actionContext.CorrelationConfiguration.Enabled) {
@@ -42,7 +67,6 @@ try {
         try {
             $query = "SELECT $correlationField,achternaam FROM persons WHERE $correlationField = '$correlationValue'"
             $correlationCheckResult = Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose
-
             if ($correlationCheckResult.externalId -eq $correlationValue) {
                 $correlatedAccount = $true
             }
@@ -65,7 +89,7 @@ try {
         if ($null -ne $correlatedAccount) {        
             Write-Verbose "correlation found in SQL Lite DB for [$($person.DisplayName) ($correlationValue)] "   
 
-            $outputContext.AccountReference = ($correlationCheckResult.$correlationField)      
+            $outputContext.AccountReference = ($correlationCheckResult.gebruikersnaam)      
 
             $outputContext.AuditLogs.Add([PSCustomObject]@{
                     Action  = "CorrelateAccount" # Optionally specify a different action for this audit log
@@ -73,9 +97,11 @@ try {
                     IsError = $false
                 })
          
-            if ($actionContext.Configuration.UpdatePersonOnCorrelate -eq 'True') {     
-                $outputContext.AccountCorrelated = $True        
-            }
+            $outputContext.AccountCorrelated = $True
+            
+            #if ($actionContext.Configuration.UpdatePersonOnCorrelate -eq 'True') {     
+            #    $outputContext.AccountCorrelated = $True        
+            #}
         }
     }
 
@@ -94,30 +120,51 @@ try {
         if ($incompleteAccount) {
             $outputContext.AuditLogs.Add([PSCustomObject]@{
                     Action  = "CreateAccount" # Optionally specify a different action for this audit log
-                    Message = "Failed to create account with username $($account.Gebruikersnaam), due to incomplete account. $message"
+                    Message = "Failed to create account with username $($account.UserName), due to incomplete account. $message"
                     IsError = $true
                 })     
         }
         else {        
             try {
-                $query = "INSERT OR REPLACE INTO persons ($correlationField, email, achternaam, voornaam, tussenvoegsel, gebruikersnaam,geslacht,createtime) VALUES (@externalId,@email,@achternaam,@voornaam,@tussenvoegsel,@gebruikersnaam,@geslacht,datetime());"
-                $sqlParameters = $account.psobject.properties | ForEach-Object -begin { $h = @{} } -process { $h."$($_.Name)" = $_.Value } -end { $h }
+                #$query = "INSERT OR REPLACE INTO persons (externalId, email, achternaam, voornaam, tussenvoegsel, gebruikersnaam,geslacht,createtime) VALUES (@externalId,@email,@achternaam,@voornaam,@tussenvoegsel,@gebruikersnaam,@geslacht,datetime());"
+                $query = "INSERT OR REPLACE INTO persons (externalId, email, achternaam, voornaam, tussenvoegsel, gebruikersnaam,geslacht,createtime) VALUES ('$($account.externalId)','$($account.email)','$($account.achternaam)','$($account.voornaam)','$($account.tussenvoegsel)','$($account.gebruikersnaam)','$($account.gender)',datetime());"
+                
+                #$sqlParameters = $account.psobject.properties | ForEach-Object -begin { $h = @{} } -process { $h."$($_.Name)" = $_.Value } -end { $h }
 
                 if (-Not($actionContext.DryRun -eq $true)) {          
-                    $null = Invoke-SqliteQuery -DataSource $database -Query $query -SqlParameters $sqlParameters -Verbose:$verbose
+                    $null = Invoke-SqliteQuery -DataSource $database -Query $query -Verbose:$verbose
+                }
                     
-                    $outputContext.AuditLogs.Add([PSCustomObject]@{
+                $outputContext.AccountReference = $account.gebruikersnaam
+
+                $outputContext.AuditLogs.Add([PSCustomObject]@{
                         Action  = "CreateAccount" # Optionally specify a different action for this audit log
-                        Message = "Created account with username $($account.Gebruikersnaam)"
+                        Message = "Created account with username $($account.UserName)"
                         IsError = $false
                     })
 
+                ## Also fill roles table for each contract incondition
+
+                $contracts = $personContext.Person.Contracts
+
+                [array]$desiredContracts = $contracts | Where-Object { $_.Context.InConditions -eq $true -or $actionContext.DryRun -eq $true }
+
+                if ($desiredContracts.length -lt 1) {
+                    # no contracts in scope found
+                    throw 'No Contracts in scope [InConditions] found!'
                 }
-                    
-                $outputContext.AccountReference = $account.externalId
-
-
-                    
+                elseif ($desiredContracts.length -ge 1) {
+                    # one or more contracts found
+                    foreach ($contract in $desiredContracts){
+                        
+                        $query = "INSERT OR REPLACE INTO Roles ('Organisatorische eenheid', 'Gebruikersnaam', 'Functieprofiel Code','datetime') VALUES ('$($contract.department.displayname)','$($account.gebruikersnaam)','$($contract.title.name)',datetime());"
+                        if (-Not($actionContext.DryRun -eq $true)) {          
+                            $null = Invoke-SqliteQuery -DataSource $database -Query $query -Verbose:$verbose
+                        } else {
+                            Write-verbose -verbose "Would execute: $query"
+                        }
+                    }
+                }                    
             }
             catch {             
                 write-error "$($_)"
@@ -137,10 +184,10 @@ try {
                    
             if ($actionContext.DryRun -eq $true) {
             
-                Write-Warning "Row with username [$($account.Gebruikersnaam)] would be added to the DB."
+                Write-Warning "Row with username [$($account.gebruikersnaam)] would be added to the DB. Query: $query"
                 $outputContext.AuditLogs.Add([PSCustomObject]@{
                         Action  = "CreateAccount" # Optionally specify a different action for this audit log
-                        Message = "Row with username [$($account.Gebruikersnaam)] would be added to the DB."
+                        Message = "Row with username [$($account.gebruikersnaam)] would be added to the DB."
                         IsError = $false
                     })
             }
