@@ -32,6 +32,7 @@ try {
     $account = $actionContext.Data;
     $person = $personContext.Person;
 
+    <#
     # Make sure module is imported
     $moduleName = "PSSQLite"
 
@@ -50,7 +51,7 @@ try {
             throw "Module [$ModuleName] is not available. Please install the module using: Install-Module -Name [$ModuleName] -Force"
         }
     }
-
+    #>
 
     # Check if we should try to correlate the account
     if ($actionContext.CorrelationConfiguration.Enabled) {
@@ -65,7 +66,7 @@ try {
         # Requesting authorization token
 
         try {
-            $query = "SELECT $correlationField,achternaam FROM persons WHERE $correlationField = '$correlationValue'"
+            $query = "SELECT $correlationField,achternaam,gebruikersnaam FROM persons WHERE $correlationField = '$correlationValue'"
             $correlationCheckResult = Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose
             if ($correlationCheckResult.externalId -eq $correlationValue) {
                 $correlatedAccount = $true
@@ -88,7 +89,6 @@ try {
 
         if ($null -ne $correlatedAccount) {        
             Write-Verbose "correlation found in SQL Lite DB for [$($person.DisplayName) ($correlationValue)] "   
-
             $outputContext.AccountReference = ($correlationCheckResult.gebruikersnaam)      
 
             $outputContext.AuditLogs.Add([PSCustomObject]@{
@@ -157,7 +157,7 @@ try {
                     # one or more contracts found
                     foreach ($contract in $desiredContracts){
                         
-                        $query = "INSERT OR REPLACE INTO Roles ('Organisatorische eenheid', 'Gebruikersnaam', 'Functieprofiel Code','datetime') VALUES ('$($contract.department.displayname)','$($account.gebruikersnaam)','$($contract.title.name)',datetime());"
+                        $query = "INSERT OR REPLACE INTO Roles ('gebruikersnaam', 'ou', 'functie', 'oucode', 'functiecode', 'createtime') VALUES ('$($account.gebruikersnaam)','$($contract.department.displayname)','$($contract.title.name)','$($contract.department.externalid)','$($contract.title.code)',datetime());"
                         if (-Not($actionContext.DryRun -eq $true)) {          
                             $null = Invoke-SqliteQuery -DataSource $database -Query $query -Verbose:$verbose
                         } else {

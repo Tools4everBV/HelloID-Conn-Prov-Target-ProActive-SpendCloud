@@ -23,6 +23,7 @@ try {
     If (Test-Path $database) {
         $account = $actionContext.Data;
 
+        <#
         # Make sure module is imported
         $moduleName = "PSSQLite"
 
@@ -40,9 +41,10 @@ try {
                     # If the module is not imported, not available and not in the online gallery then abort
                     throw "Module [$ModuleName] is not available. Please install the module using: Install-Module -Name [$ModuleName] -Force"
                 }
-        }   
+        }  
+        #>
 
-        $query = "DELETE FROM persons WHERE externalId = '$($account.externalId)'"
+        $query = "DELETE FROM persons WHERE gebruikersnaam = '$($outputContext.AccountReference)'"
             
         if (-Not($actionContext.DryRun -eq $true)) { 
             $null = Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose  
@@ -52,8 +54,7 @@ try {
         }
 
         ## Also delete rows for roles
-        ## has to be changed to aref!!
-        $query = "DELETE FROM roles WHERE gebruikersnaam = '$($account.gebruikersnaam)'"
+        $query = "DELETE FROM roles WHERE gebruikersnaam = '$($outputContext.AccountReference)'"
             
         if (-Not($actionContext.DryRun -eq $true)) { 
             $null = Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose  

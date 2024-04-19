@@ -24,8 +24,9 @@ switch ($verbose) {
 try {
     # Create account object from mapped data and set the correct account reference
     $account = $actionContext.Data;
-    #$person = $personContext.Person;
+    $person = $personContext.Person;
 
+    <#
     # Make sure module is imported
     $moduleName = "PSSQLite"
 
@@ -44,14 +45,11 @@ try {
             throw "Module [$ModuleName] is not available. Please install the module using: Install-Module -Name [$ModuleName] -Force"
         }
     }
+    #>
 
     Write-Verbose "Verifying if DB row exists"
     try {
-        ## Mooier zou zijn met aRef? Maar dan zou dit script verschillen met die in het create script
-        $correlationField = $actionContext.CorrelationConfiguration.accountField
-        $correlationValue = $actionContext.CorrelationConfiguration.accountFieldValue
-
-        $query = "SELECT * FROM persons WHERE $correlationField = '$correlationValue'"
+        $query = "SELECT * FROM persons WHERE gebruikersnaam = '$($outputContext.AccountReference)'"
         $correlationCheckResult = Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose
 
         if ($correlationCheckResult.externalId -eq $correlationValue) {
@@ -97,17 +95,16 @@ try {
 
     if (($newProperties | Measure-Object).Count -ge 1) {
 
-        If (Test-Path $database) {
-            Import-Module PSSQLite     
+        If (Test-Path $database) {   
             $query = "UPDATE persons 
                         SET email = '$($account.email)'
-                        ,achternaam = '$($account.achternaam)'
+                        ,achternaam = '$($outputContext.AccountReference)'
                         ,voornaam = '$($account.voornaam)'
                         ,tussenvoegsel = '$($account.tussenvoegesel)'
                         ,gebruikersnaam = '$($account.gebruikersnaam)'
                         ,geslacht = '$($account.gender)'
                         ,createtime = datetime()
-                        WHERE externalId = '$($account.externalid)'"
+                        WHERE gebruikersnaam = '$($outputContext.AccountReference)'"
     
             #$sqlParameters = $account.psobject.properties | ForEach-Object -begin { $h = @{} } -process { $h."$($_.Name)" = $_.Value } -end { $h }
     
@@ -123,7 +120,7 @@ try {
             ## Make sure old rows are deleted first, this could be nicer if we calculate differences in contracts but this works
             ## This should be done on aRef
 
-            $query = "DELETE FROM roles WHERE gebruikersnaam = '$($account.gebruikersnaam)'"
+            $query = "DELETE FROM roles WHERE gebruikersnaam = '$($outputContext.AccountReference)'"
             if (-Not($actionContext.DryRun -eq $true)) {          
                 $null = Invoke-SqliteQuery -DataSource $database -Query $query -Verbose:$verbose
             } else {
@@ -142,9 +139,8 @@ try {
             elseif ($desiredContracts.length -ge 1) {
                 # one or more contracts found
                 foreach ($contract in $desiredContracts) {
-                    
-                    # Must be aref thats added
-                    $query = "INSERT OR REPLACE INTO Roles ('Organisatorische eenheid', 'Gebruikersnaam', 'Functieprofiel Code','datetime') VALUES ('$($contract.department.displayname)','$($account.gebruikersnaam)','$($contract.title.name)',datetime());"
+                        
+                    $query = "INSERT OR REPLACE INTO Roles ('gebruikersnaam', 'ou', 'functie', 'oucode', 'functiecode', 'createtime') VALUES ('$($outputContext.AccountReference)','$($contract.department.displayname)','$($contract.title.name)','$($contract.department.externalid)','$($contract.title.code)',datetime());"
                     if (-Not($actionContext.DryRun -eq $true)) {          
                         $null = Invoke-SqliteQuery -DataSource $database -Query $query -Verbose:$verbose
                     }
