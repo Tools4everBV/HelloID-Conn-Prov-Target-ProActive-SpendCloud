@@ -32,34 +32,16 @@ try {
     $account = $actionContext.Data;
     $person = $personContext.Person;
 
-    <#
     # Make sure module is imported
-    $moduleName = "PSSQLite"
-
-    # If module is imported say that and do nothing
-    if (Get-Module -Verbose:$false | Where-Object { $_.Name -eq $ModuleName }) {
-        Write-Verbose "Module [$ModuleName] is already imported."
-    }
-    else {
-        # If module is not imported, but available on disk then import
-        if (Get-Module -ListAvailable -Verbose:$false | Where-Object { $_.Name -eq $ModuleName }) {
-            $module = Import-Module $ModuleName -Verbose:$false
-            Write-Verbose "Imported module [$ModuleName]"
-        }
-        else {
-            # If the module is not imported, not available and not in the online gallery then abort
-            throw "Module [$ModuleName] is not available. Please install the module using: Install-Module -Name [$ModuleName] -Force"
-        }
-    }
-    #>
+    Import-Module PSSQLite 
 
     # Check if we should try to correlate the account
     if ($actionContext.CorrelationConfiguration.Enabled) {
         $correlationField = $actionContext.CorrelationConfiguration.accountField
         $correlationValue = $actionContext.CorrelationConfiguration.accountFieldValue
 
-        if ($null -eq $correlationField) {
-            Write-Warning "Correlation is enabled but not configured correctly."
+        if ([string]::IsNullOrEmpty($($correlationValue))) {
+            throw 'Correlation is enabled but [accountFieldValue] is empty. Please make sure it is correctly mapped'
         }
 
         # Write logic here that checks if the account can be correlated in the target system
@@ -75,15 +57,8 @@ try {
         catch {
             write-error "$($_)"
             $ex = $PSItem
-            
-            $auditMessage = "Error querying data from SQL Lite DB. Error: $($ex.Exception.Message)"
+
             Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($ex.Exception.Message)"
-            
-            $outputContext.AuditLogs.Add([PSCustomObject]@{
-                    Action  = "CreateAccount" # Optionally specify a different action for this audit log
-                    Message = $auditMessage
-                    IsError = $false
-                })
             throw "Error querying data from SQL Lite DB"
         }
 
@@ -170,14 +145,7 @@ try {
                 write-error "$($_)"
                 $ex = $PSItem
                           
-                $auditMessage = "Error adding data to SQL Lite DB. Error: $($ex.Exception.Message)"
                 Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($ex.Exception.Message)"
-
-                $outputContext.AuditLogs.Add([PSCustomObject]@{
-                        Action  = "CreateAccount" # Optionally specify a different action for this audit log
-                        Message = $auditMessage
-                        IsError = $false
-                    })
                 throw "Error adding data to SQL Lite DB"
                     
             }
@@ -207,7 +175,7 @@ catch {
             Message = $auditMessage
             IsError = $false
         })
-    throw "Error adding data to SQL Lite DB"
+    
 }
 
 finally {

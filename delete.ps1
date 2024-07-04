@@ -5,12 +5,10 @@
 ########################################
 
 # Initialize default values
-$config = $actionContext.Configuration
-$p = $personContext.Person
 $outputContext.Success = $false
 
-$database = $config.database
-$verbose = $config.verbose
+$database = $actionContext.Configuration.database
+$verbose = $actionContext.Configuration.verbose
 
 # Set debug logging
 switch ($verbose) {
@@ -23,28 +21,10 @@ try {
     If (Test-Path $database) {
         $account = $actionContext.Data;
 
-        <#
         # Make sure module is imported
-        $moduleName = "PSSQLite"
+        Import-Module PSSQLite 
 
-        # If module is imported say that and do nothing
-        if (Get-Module -Verbose:$false | Where-Object { $_.Name -eq $ModuleName }) {
-                Write-Verbose "Module [$ModuleName] is already imported."
-            }
-        else {
-                # If module is not imported, but available on disk then import
-                if (Get-Module -ListAvailable -Verbose:$false | Where-Object { $_.Name -eq $ModuleName }) {
-                    $module = Import-Module $ModuleName -Verbose:$false
-                    Write-Verbose "Imported module [$ModuleName]"
-                }
-                else {
-                    # If the module is not imported, not available and not in the online gallery then abort
-                    throw "Module [$ModuleName] is not available. Please install the module using: Install-Module -Name [$ModuleName] -Force"
-                }
-        }  
-        #>
-
-        $query = "DELETE FROM persons WHERE gebruikersnaam = '$($outputContext.AccountReference)'"
+        $query = "DELETE FROM persons WHERE gebruikersnaam = '$($actionContext.References.Account)'"
             
         if (-Not($actionContext.DryRun -eq $true)) { 
             $null = Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose  
@@ -54,7 +34,7 @@ try {
         }
 
         ## Also delete rows for roles
-        $query = "DELETE FROM roles WHERE gebruikersnaam = '$($outputContext.AccountReference)'"
+        $query = "DELETE FROM roles WHERE gebruikersnaam = '$($actionContext.References.Account)'"
             
         if (-Not($actionContext.DryRun -eq $true)) { 
             $null = Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose  
