@@ -11,6 +11,28 @@
     }
   },
   {
+    "key": "destinationfile",
+    "type": "input",
+    "defaultValue": "",
+    "templateOptions": {
+      "label": "Persons destination",
+      "placeholder": "",
+      "description": "",
+      "required": true
+    }
+  },
+  {
+    "key": "destinationfileRoles",
+    "type": "input",
+    "defaultValue": "",
+    "templateOptions": {
+      "label": "Roles destination file",
+      "placeholder": "",
+      "description": "",
+      "required": false
+    }
+  },
+  {
     "key": "verbose",
     "type": "checkbox",
     "defaultValue": false,
