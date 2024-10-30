@@ -1,0 +1,132 @@
+{
+    "Version": "v1",
+    "MappingFields": [
+      {
+        "Name": "email",
+        "Description": "",
+        "Type": "Text",
+        "MappingActions": [
+          {
+            "MapForActions": [
+              "Create",
+              "Update",
+              "Delete"
+            ],
+            "MappingMode": "Complex",
+            "Value": "\"function getValue() {\\r\\n    let email = Person.Accounts.MicrosoftActiveDirectory.userPrincipalName\\r\\n\\r\\n    return email\\r\\n}\\r\\n\\r\\ngetValue()\"",
+            "UsedInNotifications": false,
+            "StoreInAccountData": false
+          }
+        ]
+      },
+      {
+        "Name": "voornaam",
+        "Description": "",
+        "Type": "Text",
+        "MappingActions": [
+          {
+            "MapForActions": [
+              "Create",
+              "Update",
+              "Delete"
+            ],
+            "MappingMode": "Field",
+            "Value": "\"Person.Name.NickName\"",
+            "UsedInNotifications": false,
+            "StoreInAccountData": false
+          }
+        ]
+      },
+      {
+        "Name": "externalId",
+        "Description": "",
+        "Type": "Text",
+        "MappingActions": [
+          {
+            "MapForActions": [
+              "Create",
+              "Update",
+              "Delete"
+            ],
+            "MappingMode": "Field",
+            "Value": "\"Person.ExternalId\"",
+            "UsedInNotifications": false,
+            "StoreInAccountData": true
+          }
+        ]
+      },
+      {
+        "Name": "achternaam",
+        "Description": "",
+        "Type": "Text",
+        "MappingActions": [
+          {
+            "MapForActions": [
+              "Create",
+              "Update",
+              "Delete"
+            ],
+            "MappingMode": "Complex",
+            "Value": "\"// Please enter the mapping logic to generate the common name.\\r\\nfunction generateSurname() {\\r\\n\\tlet middleName = Person.Name.FamilyNamePrefix;\\r\\n\\tlet lastName = Person.Name.FamilyName;\\r\\n    let middleNamePartner = Person.Name.FamilyNamePartnerPrefix;\\r\\n    let lastNamePartner = Person.Name.FamilyNamePartner;\\r\\n    let convention = Person.Name.Convention;\\r\\n    let nameFormat = '';\\r\\n\\r\\n    switch (convention) {\\r\\n        case 'B':\\r\\n            nameFormat = nameFormat + lastName; //Boele\\r\\n            if (typeof middleName !== 'undefined' && middleName) { nameFormat = nameFormat + ' ' + middleName } //Boele van den\\r\\n            break;\\r\\n        case 'BP':\\r\\n            nameFormat = nameFormat + lastName + ' - '; //Boele - \\r\\n            if (typeof middleNamePartner !== 'undefined' && middleNamePartner) { nameFormat = nameFormat + middleNamePartner + ' ' } //Boele - de\\r\\n            nameFormat = nameFormat + lastNamePartner; //Boele - de Vries\\r\\n            if (typeof middleName !== 'undefined' && middleName) { nameFormat = nameFormat + ' ' + middleName } //Boele - de Vries van den\\r\\n            break;\\r\\n        case 'P':\\r\\n            nameFormat = nameFormat + lastNamePartner; //Vries\\r\\n            if (typeof middleNamePartner !== 'undefined' && middleNamePartner) { nameFormat = nameFormat + ' ' + middleNamePartner } //Vries de\\r\\n            break;\\r\\n        case 'PB':\\r\\n            nameFormat = nameFormat + lastNamePartner + ' - '; //Vries - \\r\\n            if (typeof middleName !== 'undefined' && middleName) { nameFormat = nameFormat + middleName + ' ' } //Vries - van den\\r\\n            nameFormat = nameFormat + lastName //Vries - van den Boele\\r\\n            if (typeof middleNamePartner !== 'undefined' && middleNamePartner) { nameFormat = nameFormat + ' ' + middleNamePartner } //Vries - van den Boele de\\r\\n            break;\\r\\n        default:\\r\\n            nameFormat = nameFormat + lastName;\\r\\n            if (typeof middleName !== 'undefined' && middleName) { nameFormat = nameFormat + ' ' + middleName }\\r\\n            break;\\r\\n    }\\r\\n    \\r\\n\\t//Remove diacritical chars\\r\\n\\tnameFormat = deleteDiacriticalMarks(nameFormat);\\r\\n\\r\\n\\treturn nameFormat;\\r\\n}\\r\\n\\r\\ngenerateSurname();\"",
+            "UsedInNotifications": false,
+            "StoreInAccountData": false
+          }
+        ]
+      },
+      {
+        "Name": "tussenvoegsel",
+        "Description": "",
+        "Type": "Text",
+        "MappingActions": [
+          {
+            "MapForActions": [
+              "Create",
+              "Update",
+              "Delete"
+            ],
+            "MappingMode": "Complex",
+            "Value": "\"// Please enter the mapping logic to generate the common name.\\r\\nfunction generateMiddlename() {\\r\\n\\r\\n\\tlet middleName = Person.Name.FamilyNamePrefix;\\r\\n    let middleNamePartner = Person.Name.FamilyNamePartnerPrefix;\\r\\n    let convention = Person.Name.Convention;\\r\\n    let nameFormat = '';\\r\\n\\r\\n    switch (convention) {\\r\\n        case 'B':\\r\\n        case 'BP':\\r\\n            if (typeof middleName !== 'undefined' && middleName) { nameFormat = middleName } //van den\\r\\n            break;\\r\\n        case 'P':\\r\\n        case 'PB':\\r\\n            if (typeof middleNamePartner !== 'undefined' && middleNamePartner) { nameFormat = middleNamePartner } //de\\r\\n            break;\\r\\n        default:\\r\\n            if (typeof middleName !== 'undefined' && middleName) { nameFormat = middleName } //van den\\r\\n            break;\\r\\n    }\\r\\n    \\r\\n\\t//Remove diacritical chars\\r\\n\\tnameFormat = deleteDiacriticalMarks(nameFormat);\\r\\n\\r\\n\\treturn nameFormat;\\r\\n}\\r\\n\\r\\ngenerateMiddlename();\"",
+            "UsedInNotifications": false,
+            "StoreInAccountData": false
+          }
+        ]
+      },
+      {
+        "Name": "gender",
+        "Description": "",
+        "Type": "Text",
+        "MappingActions": [
+          {
+            "MapForActions": [
+              "Create",
+              "Update",
+              "Delete"
+            ],
+            "MappingMode": "Complex",
+            "Value": "\"// Please enter the mapping logic to generate the common name.\\r\\nfunction generateGender() {\\r\\n\\r\\n\\tlet gender = Person.Details.Gender;\\r\\n    let nameFormat = '';\\r\\n\\r\\n    //Needs a specific format, so switch is default for when source systems provide 'male' or 'female'\\r\\n\\r\\n    switch (gender) {\\r\\n        case 'M':\\r\\n            nameFormat = 'M';\\r\\n            break;\\r\\n        case 'V':\\r\\n            nameFormat = 'V';\\r\\n            break;\\r\\n        default:\\r\\n            nameFormat = 'O';\\r\\n            break;\\r\\n    }\\r\\n\\r\\n\\treturn nameFormat;\\r\\n}\\r\\n\\r\\ngenerateGender();\"",
+            "UsedInNotifications": false,
+            "StoreInAccountData": false
+          }
+        ]
+      },
+      {
+        "Name": "gebruikersnaam",
+        "Description": "",
+        "Type": "Text",
+        "MappingActions": [
+          {
+            "MapForActions": [
+              "Create",
+              "Update",
+              "Delete"
+            ],
+            "MappingMode": "Complex",
+            "Value": "\"function getValue() {\\r\\n    let username = Person.Accounts.MicrosoftActiveDirectory.sAMAccountName\\r\\n\\r\\n    return username\\r\\n}\\r\\n\\r\\ngetValue()\"",
+            "UsedInNotifications": false,
+            "StoreInAccountData": true
+          }
+        ]
+      }
+    ],
+    "UniqueFieldNames": []
+  }
