@@ -25,9 +25,9 @@ Spend Cloud koppelt als doelsysteem met HelloID. De Spend Cloud Target Connector
 
 Dankzij de koppeling maakt HelloID voor nieuwe medewerkers die in dienst treden automatisch een persoon aan in Spend Cloud. Wijzigen de gegevens van een medewerker? Dan wijzigt HelloID deze gegevens ook automatisch in de gerelateerde persoon in Spend Cloud. Op basis van de brondata werkt de IAM-oplossing dit daarnaast bij in de lifecycle in de SQLite-database. Dagelijks vindt een full-dump van de database plaats, waarbij HelloID de gegevens via een CSV-bestand naar Spend Cloud doorzet. 
 
-**Spend Cloud-rollen toekennen of ontnemen**
+**Spend Cloud-rollen toekennen**
 
-HelloID bepaalt aan de hand van de brondata de rollen van een persoon. Elk actief contract van een medewerker resulteert daarbij in een aparte rol. De IAM-oplossing kan rollen zowel toekennen als ontnemen. 
+HelloID bepaalt aan de hand van de brondata de rollen van een persoon. Elk actief contract van een medewerker resulteert daarbij in een aparte rol. De IAM-oplossing kan rollen zowel toekennen. 
 De connector werkt via verschillende subacties. Zo wordt in de accountlifecycle van HelloID een SQLite-database gevuld, waarna HelloID deze in een geautomatiseerde taak periodiek samenvoegt en als CSV-bestand exporteert. Dit bestand leest Spend Cloud vervolgens weer in. Dit betekent dat ook aan de kant van Spend Cloud configuratie nodig is. Zo moet Spend Cloud over een import-job beschikken voor het importeren van het CSV-bestand. Ook zien we vaak de inzet van een SFTP-taak voor het automatisch transporteren van het CSV-bestand naar Spend Cloud. Spend Cloud correleert vervolgens aan de hand van het personeelsnummer een bestaand Spend Cloud-persoon met de gegevens uit het CSV-bestand. 
 Let op: het gaat om een complexe connector. Zo moet niet alleen HelloID op de juiste manier zijn ingesteld, maar is het ook in Spend Cloud de correcte configuratie nodig. Neem daarom altijd contact met ons op voor de implementatie van de Spend Cloud connector, waarbij wij je graag begeleiden en ondersteunen.
 
