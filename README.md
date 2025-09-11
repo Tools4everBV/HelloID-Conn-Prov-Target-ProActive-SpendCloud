@@ -2,7 +2,7 @@
 
 | :information_source: Information |
 |:---------------------------|
-| This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements.       |
+| This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements. |
 
 <br />
 
@@ -12,72 +12,107 @@
 
 ## Table of contents
 
-- [Introduction](#Introduction)
-- [Getting started](#Getting-started)
-  + [Prerequisites](#Prerequisites)
-  + [Connector settings](#Connector-settings)
-  + [Mapping](#Mapping)
-  + [Supported PowerShell versions](#Supported-PowerShell-versions)
-  + [Correlation](#Correlation)
-- [Getting help](#Getting-help)
-- [HelloID Docs](#HelloID-Docs)
+- [HelloID-Conn-Prov-Target-ProActive](#helloid-conn-prov-target-proactive)
+  - [Table of contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Getting started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Connector settings](#connector-settings)
+    - [Mapping](#mapping)
+    - [On-Premises requirement](#on-premises-requirement)
+    - [Exported CSV files](#exported-csv-files)
+    - [Correlation](#correlation)
+  - [Getting help](#getting-help)
+  - [HelloID Docs](#helloid-docs)
 
 ## Introduction
 
-HelloID target connector for ProActive. This target connector uses a SQLite database as the intermediate step for the actual export to CSV. The new persons are placed in this database and possibly updated if required. When a person no longer gets access to ProActive, the persons are also deleted from this database.
+HelloID target connector for ProActive (SpendCloud).  
+This connector uses a local SQLite database as an intermediate step to create export files for SpendCloud. All changes to persons and their contracts are written to this database, after which CSV files are generated and processed by SpendCloud.  
 
-To finally send the persons to ProActive, a Service Automation task is running from a schedule and creates an export in CSV with the required data to create, manage or delete the accounts in ProActive.
-A secondary 'roles' table will be filed with all contracts incondition for setting permissions in Spendcloud. Roles should match 1-1 in both systems for this to work.
+These CSV files are designed to be processed by the standard CSV import functionality within SpendCloud.  
 
-The fields that are exported are "voornamen, tussenvoegsel, achternaam, gebruikersnaam, email". 
-> A CSV import job has to be created in ProActive for this connector to work.
+| Action        | Action(s) Performed                        | Comment |
+|---------------|--------------------------------------------|---------|
+| create.ps1    | Create or correlate SpendCloud DB row      | Creates or correlates a row in the database and updates the roles table. If correlation is configured, updates are processed. |
+| update.ps1    | Update SpendCloud DB row                   | Updates DB row, removes and re-sets roles. |
+| delete.ps1    | Archive SpendCloud DB row                  | Removes the DB row. |
 
-| Action                          | Action(s) Performed   | Comment   | 
-| ------------------------------- | --------------------- | --------- |
-| create.ps1                      | Create or correlate Spendcloud DB row  | Create or correlates an row in the database & updates roles table. If correlateion is configured, the update will be processed |
-| update.ps1                      | Update Spendcloud DB row  | Update DB row, removes and re-sets roles. |
-| delete.ps1                      | Archive Spendcloud DB row  | Removes the DB row. |
- 
- <!-- GETTING STARTED -->
+<!-- GETTING STARTED -->
 ## Getting started
-
 
 ### Prerequisites
 
-- This connector requires an On-Premise HelloID Agent
-- Using the HelloID On-Premises agent, Windows PowerShell 5.1 must be installed.
-- Installation of SQLite must be done on the On-Premise server which runs the HellloID Agent
-- Installation of SQLite can be done by running the install.ps1 script (must be ran as admin).
+- This connector requires an On-Premise HelloID Agent.
+- Windows PowerShell 5.1 must be installed on the On-Premise server running the HelloID Agent.
+- SQLite must be installed on the On-Premise server.  
+  Installation can be done by running the `install.ps1` script (as Administrator).
 
 ### Connector settings
 
 The following custom connector settings are available and required:
 
-| Setting     | Description |
-| ------------ | ----------- |
-| SQLITE DATABASE FILE | The SQLite database file on the On-Premise server. Please fill the complete path (e.g. "D:\HelloID\SQLite\Database\ProActive.db") |
-| VERBOSE LOGGING | Enable or Disable the Verbose logging of the script |
+| Setting              | Description |
+|-----------------------|-------------|
+| SQLITE DATABASE FILE  | The SQLite database file on the On-Premise server. Please provide the complete path (e.g. `D:\HelloID\SQLite\Database\ProActive.db`). |
+| VERBOSE LOGGING       | Enable or disable verbose logging. |
 
 ### Mapping
-The mandatory and recommended field mapping is listed below. Some fields are required by Spendcloud and are set on creating an account. When an update is triggered, the required/immutable fields are set to the existing values from the existing user.
 
-Mapping file added in repository
+The mandatory and recommended field mapping is listed below. Some fields are required by SpendCloud and must be set when creating an account. During an update, required/immutable fields are set to existing values from the existing user.  
 
-### Supported PowerShell versions
+The mapping file is included in this repository.  
 
-The connector is created for Windows PowerShell 5.1. This means that the connector can not be executed in the cloud and requires an On-Premises installation of the HelloID Agent.
+### On-Premises requirement
 
-> Older versions of Windows PowerShell are not supported.
+This connector **always requires an On-Premise HelloID Agent**.  
+The reason is that the connector generates CSV files (`Users.csv` and `Roles.csv`) which are written to a local or network location. These files are then picked up by SpendCloud or a process managed by the SpendCloud functional administrator or supplier.  
+
+The export of `Users.csv` and `Roles.csv` is executed via a scheduled HelloID Service Automation task.  
+No additional HelloID licenses are required for this functionality.  
+
+Running this connector purely in the cloud is not possible, because file system access is mandatory for the export process.
+
+### Exported CSV files
+
+From the intermediate SQLite database, two CSV files are generated:  
+
+1. **Users.csv** – contains user information:  
+   - FirstName  
+   - MiddleName  
+   - LastName  
+   - Gender  
+   - Email  
+   - Username  
+
+2. **Roles.csv** – contains all contracts that are currently in scope (technically: `inCondition`; functionally: usually all active contracts):  
+   - Organizational Unit  
+   - Username  
+   - Function Profile Code  
+
+The files are placed on a designated network location.  
+
+- **Users.csv** is used to create and update users in SpendCloud.  
+- **Roles.csv** is used to assign and manage roles within SpendCloud.  
+
+Processing of these files is handled either by a scheduled process configured by the SpendCloud functional administrator or by the SpendCloud supplier.  
+
+For the processing of these files, an import job must be configured within ProActive.  
+Depending on the environment, additional setup by the ProActive supplier or functional administrator may be required.  
 
 ### Correlation
-It is mandatory to enable the correlation in the correlation tab. The default value for "person correlation field" is " ExternalId". The default value for "Account Correlation field" is "externalId".
+
+It is mandatory to enable correlation in the correlation tab.  
+
+- Default "Person Correlation field" = `ExternalId`  
+- Default "Account Correlation field" = `externalId`
 
 ## Getting help
 
-> _For more information on how to configure a HelloID PowerShell connector, please refer to our [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems.html) pages_
+> _For more information on how to configure a HelloID PowerShell connector, please refer to our [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems.html) pages._  
 
-> _If you need help, feel free to ask questions on our [forum](https://forum.helloid.com)_
+> _If you need help, feel free to ask questions on our [forum](https://forum.helloid.com)._  
 
 ## HelloID Docs
 
-The official HelloID documentation can be found at: https://docs.helloid.com/
+The official HelloID documentation can be found at: <https://docs.helloid.com/>

@@ -1,9 +1,7 @@
-$type = "csv" # type can be database and csv
-$system = "ProActive" # name of the HelloID provisioning SQLite connector
 $verbose = $False #Turn verbosity on or off
 $database = "C:\HelloID\Spendcloud\Spendcloud.db" #The database location
-$destinationFile = "C:\HelloID\Spendcloud\ProActive.csv"
-$destinationFileRoles = "C:\HelloID\Spendcloud\ProActiveRoles.csv"
+$destinationFile = "C:\HelloID\Spendcloud\Users.csv"
+$destinationFileRoles = "C:\HelloID\Spendcloud\Roles.csv"
 
 Write-Information "Starting export" 
 
