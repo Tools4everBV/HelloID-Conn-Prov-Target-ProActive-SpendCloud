@@ -126,6 +126,9 @@ The correlation configuration is used to specify which properties will be used t
 | Person correlation field  | `ExternalId`                      |
 | Account correlation field | `ExternalId`                      |
 
+> [!TIP]
+> _For more information on correlation, please refer to our correlation [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems/correlation.html) pages_.
+
 ## Exported CSV Files
 
 Exact column lay-out and delimiters as produced by the export scripts (`resources.ps1` preferred, `sa-export.ps1` alternate):
