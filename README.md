@@ -1,4 +1,4 @@
-# HelloID-Conn-Prov-Target-ProActive
+# HelloID-Conn-Prov-Target-SpendCloud (Was: ProActive)
 
 | :information_source: Information |
 |:---------------------------|
