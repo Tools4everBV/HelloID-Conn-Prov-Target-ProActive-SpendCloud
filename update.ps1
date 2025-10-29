@@ -1,66 +1,39 @@
-########################################
-# HelloID-Conn-Prov-Target-SpendCloudV2-Update
-#
-# Version: 2.0.0
-########################################
+##############################################
+# HelloID-Conn-Prov-Target-SpendCloud-Update
+##############################################
 
 # Initialize default values
-$outputContext.success = $false
 $database = $actionContext.Configuration.database
-$verbose = $actionContext.Configuration.verbose
 
-# Set debug logging
-switch ($verbose) {
-    $true { $VerbosePreference = 'Continue' }
-    $false { $VerbosePreference = 'SilentlyContinue' }
+# Helper: escape single quotes for safe inclusion in SQL string literals
+function ConvertTo-SqliteLiteral {
+    param(
+        [string]$Value
+    )
+    if ($null -eq $Value) { return $Value }
+    return $Value -replace "'", "''"
 }
 
-#region functions
-
-#endregion functions
 try {
     # Create account object from mapped data and set the correct account reference
-    $account = $actionContext.Data;
-    $person = $personContext.Person;
+    $account = $actionContext.Data
 
     # Make sure module is imported
-    Import-Module PSSQLite 
+    Import-Module PSSQLite
 
-    Write-Verbose "Verifying if DB row exists"
-    try {
-        $query = "SELECT * FROM persons WHERE gebruikersnaam = '$($actionContext.References.Account)'"
-        $correlationCheckResult = Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose
-
-        if ($correlationCheckResult.externalId -eq $correlationValue) {
-            $currentAccount = $correlationCheckResult
-        }
-
-    }
-    catch {
-        write-error "$($_)"
-        $ex = $PSItem
-        
-        $auditMessage = "Error querying data from SQL Lite DB. Error: $($ex.Exception.Message)"
-        Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($ex.Exception.Message)"
-        
-        $outputContext.AuditLogs.Add([PSCustomObject]@{
-                Action  = "CreateAccount" # Optionally specify a different action for this audit log
-                Message = $auditMessage
-                IsError = $false
-            })
-        throw "Error querying data from SQL Lite DB"
-    }
+    Write-Information "Verifying if DB row exists"
+    $query = "SELECT * FROM persons WHERE gebruikersnaam = '$($actionContext.References.Account)'"
+    $currentAccount = Invoke-SqliteQuery -Query $query -DataSource $database
 
     $previousAccount = [PSCustomObject]@{
         achternaam     = $currentAccount.achternaam
         tussenvoegsel  = $currentAccount.tussenvoegsel
         voornaam       = $currentAccount.voornaam
         gebruikersnaam = $currentAccount.gebruikersnaam
-        geslacht       = $currentAccount.gender
+        geslacht       = $currentAccount.geslacht
         externalId     = $currentAccount.externalId
         email          = $currentAccount.email
     }
-
 
     # Calculate changes between current data and provided data
     $splatCompareProperties = @{
@@ -70,104 +43,94 @@ try {
 
     $changedProperties = $null
     $changedProperties = (Compare-Object @splatCompareProperties -PassThru)
-    
+
     $newProperties = $changedProperties.Where( { $_.SideIndicator -eq '=>' })
 
     if (($newProperties | Measure-Object).Count -ge 1) {
+        $achternaam = ConvertTo-SqliteLiteral $account.achternaam
+        $voornaam = ConvertTo-SqliteLiteral $account.voornaam
+        $tussenvoegsel = ConvertTo-SqliteLiteral $account.tussenvoegsel
 
-        
-        $query = "UPDATE persons 
+        $query = "UPDATE persons
                         SET email = '$($account.email)'
-                        ,achternaam = '$($account.achternaam)'
-                        ,voornaam = '$($account.voornaam)'
-                        ,tussenvoegsel = '$($account.tussenvoegesel)'
+                        ,achternaam = '$achternaam'
+                        ,voornaam = '$voornaam'
+                        ,tussenvoegsel = '$tussenvoegsel'
                         ,gebruikersnaam = '$($account.gebruikersnaam)'
-                        ,geslacht = '$($account.gender)'
+                        ,geslacht = '$($account.geslacht)'
                         ,createtime = datetime()
                         WHERE gebruikersnaam = '$($actionContext.References.Account)'"
-    
-        if (-Not($actionContext.DryRun -eq $true)) { 
-            $null = Invoke-SqliteQuery -Query $query -DataSource $database -Verbose:$verbose
+
+        if (-Not($actionContext.DryRun -eq $true)) {
+            $null = Invoke-SqliteQuery -Query $query -DataSource $database
         }
         else {
-            Write-warning "Would send: $query" 
+            Write-Information "Would send: $query"
         }
-              
-        ## Also fill roles table for each contract incondition
-
-        ## Make sure old rows are deleted first, this could be nicer if we calculate differences in contracts but this works
-        ## This should be done on aRef
-
-        $query = "DELETE FROM roles WHERE gebruikersnaam = '$($actionContext.References.Account)'"
-        if (-Not($actionContext.DryRun -eq $true)) {          
-            $null = Invoke-SqliteQuery -DataSource $database -Query $query -Verbose:$verbose
-        }
-        else {
-            Write-verbose -verbose "Would execute: $query"
-        }
-
-        # Now calculate and set roles for contracts incondition
-        $contracts = $personContext.Person.Contracts
-
-        [array]$desiredContracts = $contracts | Where-Object { $_.Context.InConditions -eq $true -or $actionContext.DryRun -eq $true }
-
-        if ($desiredContracts.length -lt 1) {
-            # no contracts in scope found
-            throw 'No Contracts in scope [InConditions] found!'
-        }
-        elseif ($desiredContracts.length -ge 1) {
-            # one or more contracts found
-            foreach ($contract in $desiredContracts) {
-                        
-                $query = "INSERT OR REPLACE INTO Roles ('gebruikersnaam', 'ou', 'functie', 'oucode', 'functiecode', 'createtime') VALUES ('$($actionContext.References.Account)','$($contract.department.displayname)','$($contract.title.name)','$($contract.department.externalid)','$($contract.title.code)',datetime());"
-                if (-Not($actionContext.DryRun -eq $true)) {          
-                    $null = Invoke-SqliteQuery -DataSource $database -Query $query -Verbose:$verbose
-                }
-                else {
-                    Write-verbose -verbose "Would execute: $query"
-                }
-            }
-        }                    
-
-
         $outputContext.AuditLogs.Add([PSCustomObject]@{
-                Action  = "UpdateAccount" # Optionally specify a different action for this audit log
-                Message = "Account with username $($account.gebruikersnaam) updated"
+                Action  = "UpdateAccount"
+                Message = "Account with username [$($account.gebruikersnaam)] updated"
                 IsError = $false
             })
-        
-        
     }
     else {
-        Write-Verbose "No Updates for SQLLite row with accountReference: [$($actionContext.References.Account)]"
-        $outputContext.AuditLogs.Add([PSCustomObject]@{
-                Action  = "UpdateAccount" # Optionally specify a different action for this audit log
-                Message = "Account with username $($account.gebruikersnaam) has no updates"
-                IsError = $false
-            })
-    }  
-}
-catch {
-    write-error "$($_)"
-    $ex = $PSItem
-          
-    $auditMessage = "Error adding data to SQL Lite DB. Error: $($ex.Exception.Message)"
-    Write-Verbose "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($ex.Exception.Message)"
-
-    $outputContext.AuditLogs.Add([PSCustomObject]@{
-            Action  = "UpdateAccount" # Optionally specify a different action for this audit log
-            Message = $auditMessage
-            IsError = $false
-        })
-    throw "Error adding data to SQL Lite DB"
-}
-
-finally {
-    # Check if auditLogs contains errors, if no errors are found, set success to true
-    if (-NOT($outputContext.AuditLogs.IsError -contains $true)) {
-        $outputContext.Success = $true
+        Write-Information "No account updates for SQLLite row with accountReference: [$($actionContext.References.Account)]"
     }
 
-    $outputContext.Data = $account 
+    ## Also fill roles table for each contract incondition
+
+    ## Make sure old rows are deleted first, this could be nicer if we calculate differences in contracts but this works
+    ## This should be done on aRef
+    $query = "DELETE FROM roles WHERE gebruikersnaam = '$($actionContext.References.Account)'"
+    if (-Not($actionContext.DryRun -eq $true)) {
+        $null = Invoke-SqliteQuery -DataSource $database -Query $query
+    }
+    else {
+        Write-Information  "Would execute: $query"
+    }
+
+    # Now calculate and set roles for contracts incondition
+    $contracts = $personContext.Person.Contracts
+    [array]$desiredContracts = $contracts | Where-Object { $_.Context.InConditions -eq $true -or $actionContext.DryRun -eq $true }
+
+    if ($desiredContracts.length -lt 1) {
+        throw 'No Contracts in scope [InConditions] found!'
+    }
+    elseif ($desiredContracts.length -ge 1) {
+        foreach ($contract in $desiredContracts) {
+
+            $departmentDisplayName = ConvertTo-SqliteLiteral $contract.department.displayname
+            $titleName = ConvertTo-SqliteLiteral $contract.title.name
+            $query = "INSERT OR REPLACE INTO Roles ('gebruikersnaam', 'ou', 'functie', 'oucode', 'functiecode', 'createtime') VALUES ('$($actionContext.References.Account)','$departmentDisplayName','$titleName','$($contract.department.externalid)','$($contract.title.externalId)',datetime());"
+            if (-Not($actionContext.DryRun -eq $true)) {
+                $null = Invoke-SqliteQuery -DataSource $database -Query $query
+            }
+            else {
+                Write-Information "Would execute: $query"
+            }
+        }
+        $outputContext.AuditLogs.Add([PSCustomObject]@{
+                Action  = "UpdatePermission"
+                Message = "Roles for account with username [$($account.gebruikersnaam)] updated"
+                IsError = $false
+            })
+    }
+    else {
+        Write-Information "No role updates for SQLLite row with accountReference: [$($actionContext.References.Account)]"
+    }
+    $outputContext.Data = $account
     $outputContext.PreviousData = $previousAccount
+    $outputContext.Success = $true
+}
+catch {
+    $ex = $PSItem
+    $auditMessage = "Error adding data to SQL Lite DB. Error: $($ex.Exception.Message)"
+    Write-Warning "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($ex.Exception.Message)"
+
+    $outputContext.AuditLogs.Add([PSCustomObject]@{
+            Action  = "UpdateAccount"
+            Message = $auditMessage
+            IsError = $true
+        })
+    $outputContext.Success = $false
 }

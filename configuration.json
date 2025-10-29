@@ -1,44 +1,35 @@
 [
   {
-    "key": "database",
-    "type": "input",
     "defaultValue": "",
+    "key": "database",
     "templateOptions": {
+      "description": "",
       "label": "SQLite Database file",
       "placeholder": "",
-      "description": "",
       "required": true
-    }
+    },
+    "type": "input"
   },
   {
-    "key": "destinationfile",
-    "type": "input",
     "defaultValue": "",
+    "key": "destinationfile",
     "templateOptions": {
+      "description": "",
       "label": "Persons destination",
       "placeholder": "",
-      "description": "",
       "required": true
-    }
+    },
+    "type": "input"
   },
   {
-    "key": "destinationfileRoles",
-    "type": "input",
     "defaultValue": "",
+    "key": "destinationfileRoles",
     "templateOptions": {
+      "description": "",
       "label": "Roles destination file",
       "placeholder": "",
-      "description": "",
       "required": false
-    }
-  },
-  {
-    "key": "verbose",
-    "type": "checkbox",
-    "defaultValue": false,
-    "templateOptions": {
-      "label": "Verbose logging",
-      "required": false
-    }
+    },
+    "type": "input"
   }
 ]
