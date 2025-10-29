@@ -1,8 +1,3 @@
-<!--
-    HelloID Target Connector README (Structured per V2 template)
-    Product: ProActive SpendCloud
--->
-
 # HelloID Target Connector - ProActive SpendCloud
 
 | :information_source: Important Information |
