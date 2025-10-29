@@ -118,12 +118,13 @@ Mandatory and recommended field mappings are defined in `fieldMapping.json`. Req
 
 ## Correlation
 
-Correlation must be enabled to prevent duplicate user records.
+The correlation configuration is used to specify which properties will be used to match an existing account within _{connectorName}_ to a person in _HelloID_.
 
-- Default Person Correlation field: `ExternalId`
-- Default Account Correlation field: `externalId`
-
-On `create.ps1`, if correlation value matches an existing row, the script sets an account reference and logs a correlate action instead of a duplicate create.
+| Setting                   | Value                             |
+| ------------------------- | --------------------------------- |
+| Enable correlation        | `True`                            |
+| Person correlation field  | `ExternalId`                      |
+| Account correlation field | `ExternalId`                      |
 
 ## Exported CSV Files
 
