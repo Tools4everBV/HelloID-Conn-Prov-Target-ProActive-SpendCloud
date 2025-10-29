@@ -1,10 +1,9 @@
 # HelloID Target Connector - ProActive SpendCloud
 
-| :information_source: Important Information |
-|:-------------------------------------------|
-| This repository contains the connector implementation and configuration only. The implementer must obtain required connection details (database path, credentials, certificates, etc.). You may need agreements or contracts with the supplier before implementing. Coordinate requirements with the application's functional owner. |
+> [!IMPORTANT]
+> This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements.
 
-![ProActive SpendCloud Logo](https://raw.githubusercontent.com/Tools4everBV/HelloID-Conn-Prov-Target-ProActive-SpendCloud/refs/heads/main/Icon.png)
+![ProActive SpendCloud Logo]([https://raw.githubusercontent.com/Tools4everBV/HelloID-Conn-Prov-Target-ProActive-SpendCloud/refs/heads/main/Icon.png](https://raw.githubusercontent.com/Tools4everBV/HelloID-Conn-Prov-Target-ProActive-SpendCloud/refs/heads/Updated-Readme/Logo.png)
 
 ## Table of Contents
 
