@@ -6,7 +6,7 @@
 try {
     Import-Module PSSQLite
 
-    $query = "DELETE FROM persons WHERE gebruikersnaam = '$refAccountEsc'"
+    $query = "DELETE FROM persons WHERE gebruikersnaam = '$($actionContext.References.Account)'"
     if (-Not($actionContext.DryRun -eq $true)) {
         $null = Invoke-SqliteQuery -Query $query -DataSource $actionContext.Configuration.database
     }
@@ -24,7 +24,7 @@ try {
 
     $outputContext.AuditLogs.Add([PSCustomObject]@{
             Action  = "DeleteAccount"
-            Message = "Delete account [$($p.DisplayName)] with reference [$($actionContext.References.Account)] was successful"
+            Message = "Account with username [$($actionContext.References.Account)] deleted"
             IsError = $false
         })
     $outputContext.Success = $true
