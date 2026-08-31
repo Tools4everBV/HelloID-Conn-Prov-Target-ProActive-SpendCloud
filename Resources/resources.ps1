@@ -14,7 +14,7 @@ try {
     If (Test-Path $database) {
         Import-Module PSSQLite
 
-        $query = "SELECT voornaam,tussenvoegsel,achternaam,geslacht,email,gebruikersnaam FROM persons"
+        $query = "SELECT voornaam,tussenvoegsel,achternaam,geslacht,email,gebruikersnaam,passief FROM persons"
         $result = Invoke-SqliteQuery -Query $query -DataSource $database
         if ($result.Count -eq 0) {
             throw "Failed. Export to [$destinationFile] with query '$query' resulted in 0 records" 

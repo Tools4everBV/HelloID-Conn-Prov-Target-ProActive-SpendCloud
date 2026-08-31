@@ -33,6 +33,19 @@ try {
         geslacht       = $currentAccount.geslacht
         externalId     = $currentAccount.externalId
         email          = $currentAccount.email
+        passief        = $currentAccount.passief
+    }
+
+    if ($null -eq $account.PSObject.Properties['passief']) {
+        $account | Add-Member -MemberType NoteProperty -Name 'passief' -Value $null
+    }
+
+    # If the account was correlated, we need to clear the passief field, otherwise it will remain disabled
+    if ($actionContext.AccountCorrelated -eq $true){
+        $account.passief = $null
+    } else {
+        # If the account was not correlated, we need to set the passief field to the value from the current account
+        $account.passief = $previousAccount.passief
     }
 
     # Calculate changes between current data and provided data
@@ -59,6 +72,7 @@ try {
                         ,gebruikersnaam = '$($account.gebruikersnaam)'
                         ,geslacht = '$($account.geslacht)'
                         ,createtime = datetime()
+                        ,passief = $(if ([string]::IsNullOrWhiteSpace([string]$account.passief)) { 'NULL' } else { "'Ja'" })
                         WHERE gebruikersnaam = '$($actionContext.References.Account)'"
 
         if (-Not($actionContext.DryRun -eq $true)) {
