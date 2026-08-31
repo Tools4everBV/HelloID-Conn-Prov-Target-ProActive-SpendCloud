@@ -42,24 +42,27 @@ Why SQLite intermediate?
 
 ## Supported Features
 
-| Feature                                   | Supported | Actions                                       | Remarks           |
-| ----------------------------------------- | --------- | ----------------------------------------------| ------------------|
-| **Account Lifecycle**                     | ✅        | Create, Update, Enable, Disable, Delete       |                   |
-| **Permissions**                           | ✅        | Managed via create, update and delete scripts | All contracts that are in scope of the account business rule|
-| **Resources**                             | ✅        | Export DB data to users and roles csv files   |                   |
-| **Entitlement Import: Accounts**          | ❌        | -                                             |                   |
-| **Entitlement Import: Permissions**       | ❌        | -                                             |                   |
-| **Governance Reconciliation Resolutions** | ❌        | -                                             |                   |
+| Feature                                   | Supported | Actions                                       | Remarks                                                      |
+|-------------------------------------------|-----------|-----------------------------------------------|--------------------------------------------------------------|
+| **Account Lifecycle**                     | ✅         | Create, Update, Enable, Disable, Delete       |                                                              |
+| **Permissions**                           | ✅         | Managed via create, update and delete scripts | All contracts that are in scope of the account business rule |
+| **Resources**                             | ✅         | Export DB data to users and roles csv files   |                                                              |
+| **Entitlement Import: Accounts**          | ❌         | -                                             |                                                              |
+| **Entitlement Import: Permissions**       | ❌         | -                                             |                                                              |
+| **Governance Reconciliation Resolutions** | ❌         | -                                             |                                                              |
 
 ## Provisioning Lifecycle
 
-| Script | Action(s) Performed | Notes |
-|--------|---------------------|-------|
-| `create.ps1` | Create or correlate user; inserts role rows for in-scope contracts. | If correlation hits, starts the update process |
-| `update.ps1` | Update existing user row; deletes existing roles and re-inserts current in-scope contracts. | Uses property comparison to limit updates. |
-| `delete.ps1` | Remove user and related role rows. | Requires account reference (`gebruikersnaam`). |
-| `resources.ps1` | Preferred export (Resource script) writing `Users.csv` and `Roles.csv`. | Runs one provisioning cycle behind (next run reflects previous lifecycle changes). |
-| `sa-export.ps1` | Alternate export (Service Automation scheduled task). | Exports in the same run; choose this when you require immediate csv-file availability. |
+| Script          | Action(s) Performed                                                                         | Notes                                                                                                         |
+|-----------------|---------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| `create.ps1`    | Create or correlate user; inserts role rows for in-scope contracts.                         | New users are created with `passief = NULL` (active). If correlation hits, starts the update process.         |
+| `update.ps1`    | Update existing user row; deletes existing roles and re-inserts current in-scope contracts. | Uses property comparison to limit updates. Correlated users get `passief = NULL`.                             |
+| `delete.ps1`    | Set user as inactive and remove related role rows.                                          | Performs soft-delete on `persons` by setting `passief = 'Ja'`. Requires account reference (`gebruikersnaam`). |
+| `resources.ps1` | Preferred export (Resource script) writing `Users.csv` and `Roles.csv`.                     | Runs one provisioning cycle behind (next run reflects previous lifecycle changes).                            |
+| `sa-export.ps1` | Alternate export (Service Automation scheduled task).                                       | Exports in the same run; choose this when you require immediate csv-file availability.                        |
+
+Database cleanup note:
+- Soft deleted persons are retained in the SQLite database. Hard deletion is out of scope of this connector.
 
 ## Data Flow
 
@@ -102,11 +105,11 @@ When to choose which:
 
 Connector configuration fields (from `configuration.json`):
 
-| Key | Label (UI) | Description | Required |
-|-----|------------|-------------|----------|
-| `database` | SQLite Database file | Full path to the SQLite database file (e.g. `D:\HelloID\SQLite\Database\ProActive.db`). | Yes |
-| `destinationfile` | Persons destination | Full path (including filename) where `Users.csv` will be written. | Yes |
-| `destinationfileRoles` | Roles destination file | Full path (including filename) where `Roles.csv` will be written. | No |
+| Key                    | Label (UI)             | Description                                                                             | Required |
+|------------------------|------------------------|-----------------------------------------------------------------------------------------|----------|
+| `database`             | SQLite Database file   | Full path to the SQLite database file (e.g. `D:\HelloID\SQLite\Database\ProActive.db`). | Yes      |
+| `destinationfile`      | Persons destination    | Full path (including filename) where `Users.csv` will be written.                       | Yes      |
+| `destinationfileRoles` | Roles destination file | Full path (including filename) where `Roles.csv` will be written.                       | No       |
 
 Additional (implicit) runtime options:
 
@@ -120,11 +123,11 @@ Mandatory and recommended field mappings are defined in `fieldMapping.json`. Req
 
 The correlation configuration is used to specify which properties will be used to match an existing account within _{connectorName}_ to a person in _HelloID_.
 
-| Setting                   | Value                             |
-| ------------------------- | --------------------------------- |
-| Enable correlation        | `True`                            |
-| Person correlation field  | `ExternalId`                      |
-| Account correlation field | `ExternalId`                      |
+| Setting                   | Value        |
+|---------------------------|--------------|
+| Enable correlation        | `True`       |
+| Person correlation field  | `ExternalId` |
+| Account correlation field | `ExternalId` |
 
 > [!TIP]
 > _For more information on correlation, please refer to our correlation [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems/correlation.html) pages_.
@@ -145,6 +148,7 @@ Columns (Dutch field names from SQLite):
 - `geslacht` (Gender)
 - `email` (Email address)
 - `gebruikersnaam` (Login / Username)
+- `passief` (`Ja` = inactive, `NULL` = active)
 
 ### Roles.csv
 

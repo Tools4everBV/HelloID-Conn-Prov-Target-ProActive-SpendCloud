@@ -59,7 +59,7 @@ try {
         $voornaam = ConvertTo-SqliteLiteral $account.voornaam
         $tussenvoegsel = ConvertTo-SqliteLiteral $account.tussenvoegsel
 
-        $query = "INSERT OR REPLACE INTO persons (externalId, email, achternaam, voornaam, tussenvoegsel, gebruikersnaam,geslacht,createtime) VALUES ('$($account.externalId)','$($account.email)','$achternaam','$voornaam','$tussenvoegsel','$($account.gebruikersnaam)','$($account.geslacht)',datetime());"
+        $query = "INSERT OR REPLACE INTO persons (externalId, email, achternaam, voornaam, tussenvoegsel, gebruikersnaam,geslacht,createtime,passief) VALUES ('$($account.externalId)','$($account.email)','$achternaam','$voornaam','$tussenvoegsel','$($account.gebruikersnaam)','$($account.geslacht)',datetime(),NULL);"
 
         if (-Not($actionContext.DryRun -eq $true)) {
             $null = Invoke-SqliteQuery -DataSource $database -Query $query

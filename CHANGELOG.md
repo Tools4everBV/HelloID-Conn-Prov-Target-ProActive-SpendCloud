@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com), and this project adheres to [Semantic Versioning](https://semver.org).
 
+## [2.0.5] - 31-08-2026
+
+### Changed
+- Changed delete behavior to soft-delete users by setting `passief` to `Ja` instead of removing the row from `persons`.
+- Added `passief` handling to create and update flows so active users use `NULL` and inactive users use `Ja`.
+- Updated README documentation to describe the current `passief` lifecycle and export column.
+
 ## [2.0.4] - 11-06-2026
 
 ### Fixed
